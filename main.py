@@ -81,8 +81,6 @@ class Snake:
         elif self.direction == 'right':
             self.x[0] += BLOCK_SIZE
 
-        print("walking!")
-
     def increase(self):
         self.length += 1
         self.x.append(self.x[-1])
@@ -147,8 +145,6 @@ class Game:
                                          self.snake.x[i], self.snake.y[i]):
                         apple_in_snake = True
 
-            print("count={}".format(count))
-
             # increases difficulty by making it faster:
             if self.snake.length > 10:
                 self.delay = 0.2
@@ -187,7 +183,6 @@ class Game:
         while running:
             for event in pygame.event.get():
                 if event.type == KEYDOWN:
-                    print("keydown")
 
                     # Exit key
                     if event.key == K_ESCAPE:
