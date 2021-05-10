@@ -12,10 +12,16 @@ VERTICAL_SPACES = 15
 WINDOW_SIZE = (HORIZONTAL_SPACES * BLOCK_SIZE, VERTICAL_SPACES * BLOCK_SIZE)
 
 
+class GameOver(BaseException):
+    pass
+
+
 class Apple:
     def __init__(self, parent_screen):
         self.parent_screen = parent_screen
         self.image = pygame.image.load("resources/apple.jpg").convert()
+        self.x = 0
+        self.y = 0
         self.move()
 
     def draw(self):
@@ -96,8 +102,8 @@ class Game:
         self.paused = False
 
     def is_collision(self, x0, y0, x, y):
-        if (x >= x0 and x < x0 + BLOCK_SIZE) and (
-           y >= y0 and y < y0 + BLOCK_SIZE):
+        if (x0 <= x < x0 + BLOCK_SIZE) and (
+                y0 <= y < y0 + BLOCK_SIZE):
             return True
 
     def play(self):
@@ -108,25 +114,28 @@ class Game:
         for i in range(3, self.snake.length):
             if self.is_collision(self.snake.x[0], self.snake.y[0],
                                  self.snake.x[i], self.snake.y[i]):
-                raise "Game Over"
+                raise GameOver
 
         # check if snake is out of screen:
-        if self.snake.x[0] < 0 or self.snake.x[0] >= WINDOW_SIZE[0] or self.snake.y[0] < 0 or self.snake.y[0] >= WINDOW_SIZE[1]:
-            raise "Game Over"
+        if self.snake.x[0] < 0 or \
+                self.snake.x[0] >= WINDOW_SIZE[0] or \
+                self.snake.y[0] < 0 or \
+                self.snake.y[0] >= WINDOW_SIZE[1]:
+            raise GameOver
 
         # check if snake collides with apple:
         if self.is_collision(self.apple.x, self.apple.y,
                              self.snake.x[0], self.snake.y[0]):
 
             if self.snake.length >= HORIZONTAL_SPACES * VERTICAL_SPACES:
-                raise "Game Over"
+                raise GameOver
 
             self.snake.increase()
 
             # check if apple is in same place as snake:
             apple_in_snake = True
             count = 0
-            while (apple_in_snake):
+            while apple_in_snake:
 
                 self.apple.move()
                 apple_in_snake = False
@@ -153,7 +162,7 @@ class Game:
 
     def display_score(self):
         font = pygame.font.SysFont('arial', 20)
-        score = font.render("Pontos: {}".format(self.snake.length),
+        score = font.render("Points: {}".format(self.snake.length),
                             True, (255, 255, 255))
         self.surface.blit(score, (10, 10))
 
@@ -211,7 +220,7 @@ class Game:
                     self.play()
                     self.draw()
 
-            except Exception:
+            except GameOver:
                 self.paused = True
                 self.display_game_over()
                 self.reset()
