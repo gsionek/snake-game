@@ -5,7 +5,7 @@ import time
 from random import randint
 
 
-BACKGROUND_COLOR = (50, 100, 50)
+BACKGROUND_COLOR = (150, 150, 150)
 BLOCK_SIZE = 40
 HORIZONTAL_SPACES = 15
 VERTICAL_SPACES = 15
@@ -19,13 +19,14 @@ class GameOver(BaseException):
 class Apple:
     def __init__(self, parent_screen):
         self.parent_screen = parent_screen
-        self.image = pygame.image.load("resources/apple.jpg").convert()
         self.x = 0
         self.y = 0
         self.move()
 
     def draw(self):
-        self.parent_screen.blit(self.image, (self.x, self.y))
+        apple = Rect(self.x, self.y, BLOCK_SIZE, BLOCK_SIZE)
+        pygame.draw.rect(self.parent_screen, (255, 0, 0), apple)
+        pygame.draw.rect(self.parent_screen, (0, 0, 0), apple, 3)
 
     def move(self):
         self.x = randint(0, HORIZONTAL_SPACES - 1) * BLOCK_SIZE
@@ -36,15 +37,22 @@ class Snake:
     def __init__(self, parent_screen, length):
         self.parent_screen = parent_screen
         self.length = length
-        self.block = pygame.image.load("resources/block.jpg").convert()
         self.x = [0] * length
         self.y = [0] * length
         self.direction = 'right'
         self.next_direction = 'right'
 
     def draw(self):
-        for i in range(self.length):
-            self.parent_screen.blit(self.block, (self.x[i], self.y[i]))
+        for i in range(1, self.length):
+            block = Rect(self.x[i], self.y[i], BLOCK_SIZE, BLOCK_SIZE)
+            percentage = (self.length - (i + 1)) / float(self.length)
+            minus = 1 - percentage
+            pygame.draw.rect(self.parent_screen, (0, 255 * percentage, 255 * minus), block)
+            pygame.draw.rect(self.parent_screen, (0, 0, 0), block, 3)
+
+        block = Rect(self.x[0], self.y[0], BLOCK_SIZE, BLOCK_SIZE)
+        pygame.draw.rect(self.parent_screen, (0, 255, 0), block)
+        pygame.draw.rect(self.parent_screen, (0, 0, 0), block, 3)
 
     def move_up(self):
         if self.direction != 'down':
