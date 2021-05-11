@@ -1,4 +1,3 @@
-
 import pygame
 from pygame.locals import *
 import time
@@ -7,9 +6,8 @@ from random import randint
 
 BACKGROUND_COLOR = (150, 150, 150)
 BLOCK_SIZE = 20
-HORIZONTAL_SPACES = 15
-VERTICAL_SPACES = 15
-WINDOW_SIZE = (HORIZONTAL_SPACES * BLOCK_SIZE, VERTICAL_SPACES * BLOCK_SIZE)
+BOARD_SIZE = (15, 15)
+WINDOW_SIZE = (BOARD_SIZE[0] * BLOCK_SIZE, BOARD_SIZE[1] * BLOCK_SIZE)
 
 
 class GameOver(BaseException):
@@ -24,13 +22,13 @@ class Apple:
         self.move()
 
     def draw(self):
-        apple = Rect(self.x, self.y, BLOCK_SIZE, BLOCK_SIZE)
+        apple = Rect(self.x * BLOCK_SIZE, self.y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE)
         pygame.draw.rect(self.parent_screen, (255, 0, 0), apple)
         pygame.draw.rect(self.parent_screen, (0, 0, 0), apple, 2)
 
     def move(self):
-        self.x = randint(0, HORIZONTAL_SPACES - 1) * BLOCK_SIZE
-        self.y = randint(0, VERTICAL_SPACES - 1) * BLOCK_SIZE
+        self.x = randint(0, BOARD_SIZE[0] - 1)
+        self.y = randint(0, BOARD_SIZE[1] - 1)
 
 
 class Snake:
@@ -44,13 +42,13 @@ class Snake:
 
     def draw(self):
         for i in range(1, self.length):
-            block = Rect(self.x[i], self.y[i], BLOCK_SIZE, BLOCK_SIZE)
+            block = Rect(self.x[i] * BLOCK_SIZE, self.y[i] * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE)
             percentage = (self.length - (i + 1)) / float(self.length)
             minus = 1 - percentage
             pygame.draw.rect(self.parent_screen, (0, 255 * percentage, 255 * minus), block)
             pygame.draw.rect(self.parent_screen, (0, 0, 0), block, 2)
 
-        block = Rect(self.x[0], self.y[0], BLOCK_SIZE, BLOCK_SIZE)
+        block = Rect(self.x[0] * BLOCK_SIZE, self.y[0] * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE)
         pygame.draw.rect(self.parent_screen, (0, 255, 0), block)
         pygame.draw.rect(self.parent_screen, (0, 0, 0), block, 2)
 
@@ -81,13 +79,13 @@ class Snake:
 
         # update snake's head
         if self.direction == 'up':
-            self.y[0] -= BLOCK_SIZE
+            self.y[0] -= 1
         elif self.direction == 'down':
-            self.y[0] += BLOCK_SIZE
+            self.y[0] += 1
         elif self.direction == 'left':
-            self.x[0] -= BLOCK_SIZE
+            self.x[0] -= 1
         elif self.direction == 'right':
-            self.x[0] += BLOCK_SIZE
+            self.x[0] += 1
 
     def increase(self):
         self.length += 1
@@ -108,8 +106,7 @@ class Game:
         self.paused = False
 
     def is_collision(self, x0, y0, x, y):
-        if (x0 <= x < x0 + BLOCK_SIZE) and (
-                y0 <= y < y0 + BLOCK_SIZE):
+        if (x == x0) and (y == y0):
             return True
 
     def play(self):
@@ -122,18 +119,19 @@ class Game:
                                  self.snake.x[i], self.snake.y[i]):
                 raise GameOver
 
-        # check if snake is out of screen:
+        # check if snake is out of board:
         if self.snake.x[0] < 0 or \
-                self.snake.x[0] >= WINDOW_SIZE[0] or \
+                self.snake.x[0] >= BOARD_SIZE[0] or \
                 self.snake.y[0] < 0 or \
-                self.snake.y[0] >= WINDOW_SIZE[1]:
+                self.snake.y[0] >= BOARD_SIZE[1]:
             raise GameOver
 
         # check if snake collides with apple:
         if self.is_collision(self.apple.x, self.apple.y,
                              self.snake.x[0], self.snake.y[0]):
 
-            if self.snake.length >= HORIZONTAL_SPACES * VERTICAL_SPACES:
+            # snake hits maximum length
+            if self.snake.length >= BOARD_SIZE[0] * BOARD_SIZE[1]:
                 raise GameOver
 
             self.snake.increase()
@@ -155,14 +153,14 @@ class Game:
 
     def draw_background(self):
         self.surface.fill(BACKGROUND_COLOR)
-        for i in range(1, HORIZONTAL_SPACES):
+        for i in range(1, BOARD_SIZE[0]):
             x = i * BLOCK_SIZE
             pygame.draw.line(self.surface,
                              color=(200, 200, 200),
                              start_pos=(x, 0),
                              end_pos=(x, WINDOW_SIZE[1]))
 
-        for i in range(1, VERTICAL_SPACES):
+        for i in range(1, BOARD_SIZE[1]):
             y = i * BLOCK_SIZE
             pygame.draw.line(self.surface,
                              color=(200, 200, 200),
