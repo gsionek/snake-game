@@ -6,7 +6,7 @@ from random import randint
 
 
 BACKGROUND_COLOR = (150, 150, 150)
-BLOCK_SIZE = 40
+BLOCK_SIZE = 20
 HORIZONTAL_SPACES = 15
 VERTICAL_SPACES = 15
 WINDOW_SIZE = (HORIZONTAL_SPACES * BLOCK_SIZE, VERTICAL_SPACES * BLOCK_SIZE)
@@ -26,7 +26,7 @@ class Apple:
     def draw(self):
         apple = Rect(self.x, self.y, BLOCK_SIZE, BLOCK_SIZE)
         pygame.draw.rect(self.parent_screen, (255, 0, 0), apple)
-        pygame.draw.rect(self.parent_screen, (0, 0, 0), apple, 3)
+        pygame.draw.rect(self.parent_screen, (0, 0, 0), apple, 2)
 
     def move(self):
         self.x = randint(0, HORIZONTAL_SPACES - 1) * BLOCK_SIZE
@@ -48,11 +48,11 @@ class Snake:
             percentage = (self.length - (i + 1)) / float(self.length)
             minus = 1 - percentage
             pygame.draw.rect(self.parent_screen, (0, 255 * percentage, 255 * minus), block)
-            pygame.draw.rect(self.parent_screen, (0, 0, 0), block, 3)
+            pygame.draw.rect(self.parent_screen, (0, 0, 0), block, 2)
 
         block = Rect(self.x[0], self.y[0], BLOCK_SIZE, BLOCK_SIZE)
         pygame.draw.rect(self.parent_screen, (0, 255, 0), block)
-        pygame.draw.rect(self.parent_screen, (0, 0, 0), block, 3)
+        pygame.draw.rect(self.parent_screen, (0, 0, 0), block, 2)
 
     def move_up(self):
         if self.direction != 'down':
@@ -104,7 +104,7 @@ class Game:
         self.snake.draw()
         self.apple = Apple(self.surface)
         self.apple.draw()
-        self.delay = 0.5
+        self.delay = 0.2
         self.paused = False
 
     def is_collision(self, x0, y0, x, y):
@@ -153,13 +153,25 @@ class Game:
                                          self.snake.x[i], self.snake.y[i]):
                         apple_in_snake = True
 
-            # increases difficulty by making it faster:
-            if self.snake.length > 10:
-                self.delay = 0.2
+    def draw_background(self):
+        self.surface.fill(BACKGROUND_COLOR)
+        for i in range(1, HORIZONTAL_SPACES):
+            x = i * BLOCK_SIZE
+            pygame.draw.line(self.surface,
+                             color=(200, 200, 200),
+                             start_pos=(x, 0),
+                             end_pos=(x, WINDOW_SIZE[1]))
+
+        for i in range(1, VERTICAL_SPACES):
+            y = i * BLOCK_SIZE
+            pygame.draw.line(self.surface,
+                             color=(200, 200, 200),
+                             start_pos=(0, y),
+                             end_pos=(WINDOW_SIZE[0], y))
 
     def draw(self):
-        self.surface.fill(BACKGROUND_COLOR)
-        self.display_score()
+        self.draw_background()
+        # self.display_score()
         self.snake.draw()
         self.apple.draw()
         pygame.display.flip()
