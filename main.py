@@ -1,12 +1,14 @@
+import numpy as np
 import pygame
 from pygame.locals import *
 import time
 from random import randint
+from neural_network import NeuralNetwork
 
 
 BACKGROUND_COLOR = (150, 150, 150)
-BLOCK_SIZE = 20
-BOARD_SIZE = (15, 15)
+BLOCK_SIZE = 15
+BOARD_SIZE = (30, 30)
 WINDOW_SIZE = (BOARD_SIZE[0] * BLOCK_SIZE, BOARD_SIZE[1] * BLOCK_SIZE)
 
 
@@ -32,13 +34,17 @@ class Apple:
 
 
 class Snake:
-    def __init__(self, parent_screen, length):
+    def __init__(self, parent_screen, initial_pos, length):
         self.parent_screen = parent_screen
         self.length = length
-        self.x = [0] * length
-        self.y = [0] * length
-        self.direction = 'right'
-        self.next_direction = 'right'
+        self.x = [initial_pos[0] for i in range(length)]
+        self.y = [initial_pos[1] for i in range(length)]
+        self.energy = 30
+        self.movements = (-1, 0, 1)        # self.movements = ('left', 'straight', 'right')
+        self.directions = ('up', 'right', 'down', 'left')
+        self.current_direction_index = 0
+        self.current_direction = self.directions[self.current_direction_index]
+        self.nn = NeuralNetwork()
 
     def draw(self):
         for i in range(1, self.length):
@@ -52,45 +58,36 @@ class Snake:
         pygame.draw.rect(self.parent_screen, (0, 255, 0), block)
         pygame.draw.rect(self.parent_screen, (0, 0, 0), block, 2)
 
-    def move_up(self):
-        if self.direction != 'down':
-            self.next_direction = 'up'
-
-    def move_down(self):
-        if self.direction != 'up':
-            self.next_direction = 'down'
-
-    def move_left(self):
-        if self.direction != 'right':
-            self.next_direction = 'left'
-
-    def move_right(self):
-        if self.direction != 'left':
-            self.next_direction = 'right'
-
     def walk(self):
-        # update snake's body
+        # update snake's body from tail to head (head excluded)
         for i in range(self.length - 1, 0, -1):
             self.x[i] = self.x[i - 1]
             self.y[i] = self.y[i - 1]
 
-        # lock the new direction:
-        self.direction = self.next_direction
-
         # update snake's head
-        if self.direction == 'up':
+        if self.current_direction == 'up':
             self.y[0] -= 1
-        elif self.direction == 'down':
+        elif self.current_direction == 'down':
             self.y[0] += 1
-        elif self.direction == 'left':
+        elif self.current_direction == 'left':
             self.x[0] -= 1
-        elif self.direction == 'right':
+        elif self.current_direction == 'right':
             self.x[0] += 1
 
-    def increase(self):
+        self.energy -= 1
+
+        # print("snake pos: x={}\ty={} \tdir={}\tnn={}".format(self.x[0], self.y[0], self.current_direction, self.nn.output))
+
+    def eat_apple(self):
         self.length += 1
+        self.energy = 100
         self.x.append(self.x[-1])
         self.y.append(self.y[-1])
+
+
+def is_collision(x0, y0, x, y):
+    if (x == x0) and (y == y0):
+        return True
 
 
 class Game:
@@ -98,25 +95,35 @@ class Game:
         pygame.init()
         self.surface = pygame.display.set_mode(WINDOW_SIZE)
         self.surface.fill(BACKGROUND_COLOR)
-        self.snake = Snake(self.surface, 1)
+        self.snake = Snake(self.surface, (BOARD_SIZE[0] // 2, BOARD_SIZE[1] // 2), 3)
         self.snake.draw()
         self.apple = Apple(self.surface)
         self.apple.draw()
-        self.delay = 0.2
         self.paused = False
+        self.individual_count = 1
 
-    def is_collision(self, x0, y0, x, y):
-        if (x == x0) and (y == y0):
-            return True
+    def get_next_direction(self):
+        input1 = self.apple.x - self.snake.x[0]
+        input2 = self.apple.y - self.snake.y[0]
+        self.snake.nn.feedforward((input1, input2))
+        index_changer = self.snake.movements[np.argmax(self.snake.nn.output)]
+        self.snake.current_direction_index = (self.snake.current_direction_index + index_changer) % 4
+        self.snake.current_direction = self.snake.directions[self.snake.current_direction_index]
+        pass
 
     def play(self):
         # move snake:
+        self.get_next_direction()
         self.snake.walk()
+
+        # check if snake ran out of energy:
+        if self.snake.energy < 0:
+            raise GameOver
 
         # check if snake collides with itself:
         for i in range(3, self.snake.length):
-            if self.is_collision(self.snake.x[0], self.snake.y[0],
-                                 self.snake.x[i], self.snake.y[i]):
+            if is_collision(self.snake.x[0], self.snake.y[0],
+                            self.snake.x[i], self.snake.y[i]):
                 raise GameOver
 
         # check if snake is out of board:
@@ -127,28 +134,20 @@ class Game:
             raise GameOver
 
         # check if snake collides with apple:
-        if self.is_collision(self.apple.x, self.apple.y,
-                             self.snake.x[0], self.snake.y[0]):
-
+        if is_collision(self.apple.x, self.apple.y, self.snake.x[0], self.snake.y[0]):
             # snake hits maximum length
             if self.snake.length >= BOARD_SIZE[0] * BOARD_SIZE[1]:
                 raise GameOver
 
-            self.snake.increase()
+            self.snake.eat_apple()
 
-            # check if apple is in same place as snake:
+            # move apple until it is not in a occupied space by the snake
             apple_in_snake = True
-            count = 0
             while apple_in_snake:
-
                 self.apple.move()
                 apple_in_snake = False
-
-                count += 1
-
                 for i in range(self.snake.length):
-                    if self.is_collision(self.apple.x, self.apple.y,
-                                         self.snake.x[i], self.snake.y[i]):
+                    if is_collision(self.apple.x, self.apple.y, self.snake.x[i], self.snake.y[i]):
                         apple_in_snake = True
 
     def draw_background(self):
@@ -173,6 +172,7 @@ class Game:
         self.snake.draw()
         self.apple.draw()
         pygame.display.flip()
+        time.sleep(0.01)
 
     def display_score(self):
         font = pygame.font.SysFont('arial', 20)
@@ -191,7 +191,9 @@ class Game:
         pygame.display.flip()
 
     def reset(self):
-        self.snake = Snake(self.surface, 1)
+        self.paused = False
+        self.snake = Snake(self.surface, (BOARD_SIZE[0] // 2, BOARD_SIZE[1] // 2), 3)
+        self.individual_count += 1
         self.apple = Apple(self.surface)
 
     def run(self):
@@ -208,22 +210,7 @@ class Game:
 
                     # Pause / Unpause:
                     elif event.key == K_RETURN:
-                        self.paused = not self.paused
-
-                    if not self.paused:
-
-                        # Snake movement:
-                        if event.key == K_UP:
-                            self.snake.move_up()
-
-                        elif event.key == K_DOWN:
-                            self.snake.move_down()
-
-                        elif event.key == K_LEFT:
-                            self.snake.move_left()
-
-                        elif event.key == K_RIGHT:
-                            self.snake.move_right()
+                        self.reset()
 
                 elif event.type == QUIT:
                     running = False
@@ -234,11 +221,12 @@ class Game:
                     self.draw()
 
             except GameOver:
-                self.paused = True
-                self.display_game_over()
+                print("Individual #{}\t | Score: {}".format(self.individual_count, self.snake.length))
                 self.reset()
+                # self.paused = True
+                # self.display_game_over()
 
-            time.sleep(self.delay)
+
 
 
 if __name__ == "__main__":
