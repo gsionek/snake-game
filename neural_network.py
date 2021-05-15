@@ -21,8 +21,8 @@ class NeuralNetwork:
         self.output = np.zeros((1, 3))
 
     def feedforward(self, x):
-        self.layer1 = sigmoid(np.dot(x, self.parameters['W1'])) + self.parameters['b1']
-        self.output = sigmoid(np.dot(self.layer1, self.parameters['W2'])) + self.parameters['b2']
+        self.layer1 = sigmoid(np.dot(x, self.parameters['W1']) + self.parameters['b1'])
+        self.output = sigmoid(np.dot(self.layer1, self.parameters['W2']) + self.parameters['b2'])
 
 
 if __name__ == "__main__":
