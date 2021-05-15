@@ -10,6 +10,7 @@ def sigmoid(x):
 
 class NeuralNetwork:
     def __init__(self):
+        # TODO: make parameters a dictionary
         self.weights1 = np.random.uniform(-1, 1, (2, 4))
         self.weights2 = np.random.uniform(-1, 1, (4, 3))
         self.bias1 = np.random.uniform(-1, 1, (1, 4))

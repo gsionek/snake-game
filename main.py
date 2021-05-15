@@ -1,5 +1,7 @@
 import numpy as np
+import pandas as pd
 import pygame
+import math
 from pygame.locals import *
 import time
 from random import randint
@@ -92,22 +94,33 @@ class Snake:
         self.energy = 100
 
 
-def is_collision(x0, y0, x, y):
-    if (x == x0) and (y == y0):
+def is_collision(x0, y0, x1, y1):
+    if (x1 == x0) and (y1 == y0):
         return True
 
 
+def get_distance(x0, y0, x1, y1):
+    delta_x = x1 - x0
+    delta_y = y1 - y0
+    return math.sqrt(delta_x ** 2 + delta_y ** 2)
+
+
 class Game:
-    def __init__(self):
+    def __init__(self, population=100, draw=True, verbose=False):
         pygame.init()
         self.surface = pygame.display.set_mode(WINDOW_SIZE)
         self.surface.fill(BACKGROUND_COLOR)
+        self.draw_enabled = draw
+        self.print_enabled = verbose
+        self.delay = 0.01
+        self.paused = True
+
         self.snake = Snake(self.surface, (BOARD_SIZE[0] // 2, BOARD_SIZE[1] // 2), 3)
-        self.snake.draw()
         self.apple = Apple(self.surface)
-        self.apple.draw()
-        self.paused = False
-        self.individual_count = 1
+
+        self.individuals = []
+        self.last_distance = 0
+        self.population = population
 
     def get_next_direction(self):
         input1 = self.apple.x - self.snake.x[0]
@@ -159,6 +172,14 @@ class Game:
                     if is_collision(self.apple.x, self.apple.y, self.snake.x[i], self.snake.y[i]):
                         apple_in_snake = True
 
+        # Calculate fitness:
+        distance = get_distance(self.apple.x, self.apple.y, self.snake.x[0], self.snake.y[0])
+        if distance < self.last_distance:
+            self.snake.fitness += 1
+        else:
+            self.snake.fitness -= 1
+        self.last_distance = distance
+
     def draw_background(self):
         self.surface.fill(BACKGROUND_COLOR)
         for i in range(1, BOARD_SIZE[0]):
@@ -197,13 +218,33 @@ class Game:
         self.apple.draw()
         # self.display_score()
         pygame.display.flip()
-        time.sleep(0.01)
+        time.sleep(self.delay)
+
+    def save_individual(self, snake: Snake):
+        print("Individual #{}\t | Score: {}\t | Fitness: {}".format(
+            len(self.individuals), self.snake.length, self.snake.fitness))
+        individual = dict()
+        individual['fitness'] = snake.fitness
+        individual['score'] = snake.length
+        individual['weights1'] = snake.nn.weights1
+        individual['weights2'] = snake.nn.weights2
+        individual['bias1'] = snake.nn.bias1
+        individual['bias2'] = snake.nn.bias2
+        self.individuals.append(individual)
+
+    def get_data(self):
+        return pd.DataFrame(data=self.individuals)
 
     def reset(self):
-        self.paused = False
         self.snake = Snake(self.surface, (BOARD_SIZE[0] // 2, BOARD_SIZE[1] // 2), 3)
-        self.individual_count += 1
         self.apple = Apple(self.surface)
+
+    def run_one_step(self):
+        self.play()
+        if self.draw_enabled:
+            self.draw()
+        if self.print_enabled:
+            print(self.snake)
 
     def run(self):
         running = True
@@ -217,28 +258,59 @@ class Game:
                     if event.key == K_ESCAPE:
                         running = False
 
-                    # Enter --> Reset
+                    # Enter --> Pause
                     elif event.key == K_RETURN:
+                        self.paused = not self.paused
+
+                    # S --> Run step
+                    elif event.key == K_s:
+                        try:
+                            self.run_one_step()
+                        except GameOver:
+                            self.save_individual(self.snake)
+                            self.reset()
+
+                    # R --> Reset individual
+                    elif event.key == K_r:
                         self.reset()
+
+                    # D --> Draw Enable/Disable
+                    elif event.key == K_d:
+                        self.draw_enabled = not self.draw_enabled
+
+                    # V --> Print Enable/Disable
+                    elif event.key == K_v:
+                        self.print_enabled = not self.print_enabled
+
+                    # 1 --> Fast Draw Speed
+                    elif event.key == K_1:
+                        self.delay = 0.01
+
+                    # 2 --> Medium Draw Speed
+                    elif event.key == K_2:
+                        self.delay = 0.1
+
+                    # 3 --> Slow Draw Speed
+                    elif event.key == K_3:
+                        self.delay = 1
 
                 elif event.type == QUIT:
                     running = False
 
             try:
                 if not self.paused:
-                    self.play()
-                    self.draw()
-                    print(self.snake)
+                    self.run_one_step()
 
             except GameOver:
-                print("Individual #{}\t | Score: {}".format(self.individual_count, self.snake.length))
-                self.reset()
-                # self.paused = True
-                # self.display_game_over()
+                self.save_individual(self.snake)
+                if len(self.individuals) <= self.population:
+                    self.reset()
+                else:
+                    running = False
 
 
 if __name__ == "__main__":
     print("Starting game!")
-    game = Game()
+    game = Game(population=100, draw=True)
     game.run()
-    print("Game closed!")
+    print("Game Finished!")
