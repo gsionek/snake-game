@@ -37,14 +37,20 @@ class Snake:
     def __init__(self, parent_screen, initial_pos, length):
         self.parent_screen = parent_screen
         self.length = length
-        self.x = [initial_pos[0] for i in range(length)]
-        self.y = [initial_pos[1] for i in range(length)]
+        self.x = [initial_pos[0]] * length
+        self.y = [initial_pos[1]] * length
         self.energy = 30
-        self.movements = (-1, 0, 1)        # self.movements = ('left', 'straight', 'right')
+        self.movements = (-1, 0, 1)        # movements = ('turn left', 'go straight', 'turn right')
         self.directions = ('up', 'right', 'down', 'left')
         self.current_direction_index = 0
         self.current_direction = self.directions[self.current_direction_index]
         self.nn = NeuralNetwork()
+        self.fitness = 0.0
+        self.steps = 0
+
+    def __str__(self):
+        return "Snake pos=({}, {})\t dir={}\t nn={}".format(
+            self.x[0], self.y[0], self.current_direction, self.nn.output)
 
     def draw(self):
         for i in range(1, self.length):
@@ -75,14 +81,15 @@ class Snake:
             self.x[0] += 1
 
         self.energy -= 1
+        self.steps += 1
 
-        # print("snake pos: x={}\ty={} \tdir={}\tnn={}".format(self.x[0], self.y[0], self.current_direction, self.nn.output))
-
-    def eat_apple(self):
+    def increase(self):
         self.length += 1
-        self.energy = 100
         self.x.append(self.x[-1])
         self.y.append(self.y[-1])
+
+    def reset_energy(self):
+        self.energy = 100
 
 
 def is_collision(x0, y0, x, y):
@@ -106,10 +113,10 @@ class Game:
         input1 = self.apple.x - self.snake.x[0]
         input2 = self.apple.y - self.snake.y[0]
         self.snake.nn.feedforward((input1, input2))
-        index_changer = self.snake.movements[np.argmax(self.snake.nn.output)]
-        self.snake.current_direction_index = (self.snake.current_direction_index + index_changer) % 4
+        maximum_index = int(np.argmax(self.snake.nn.output))
+        movement = self.snake.movements[maximum_index]
+        self.snake.current_direction_index = (self.snake.current_direction_index + movement) % 4
         self.snake.current_direction = self.snake.directions[self.snake.current_direction_index]
-        pass
 
     def play(self):
         # move snake:
@@ -139,9 +146,11 @@ class Game:
             if self.snake.length >= BOARD_SIZE[0] * BOARD_SIZE[1]:
                 raise GameOver
 
-            self.snake.eat_apple()
+            self.snake.increase()
+            self.snake.reset_energy()
 
             # move apple until it is not in a occupied space by the snake
+            # TODO: get all available spaces and then choose one of them at random
             apple_in_snake = True
             while apple_in_snake:
                 self.apple.move()
@@ -166,14 +175,6 @@ class Game:
                              start_pos=(0, y),
                              end_pos=(WINDOW_SIZE[0], y))
 
-    def draw(self):
-        self.draw_background()
-        # self.display_score()
-        self.snake.draw()
-        self.apple.draw()
-        pygame.display.flip()
-        time.sleep(0.01)
-
     def display_score(self):
         font = pygame.font.SysFont('arial', 20)
         score = font.render("Points: {}".format(self.snake.length),
@@ -190,6 +191,14 @@ class Game:
         self.surface.blit(message, (200, 250))
         pygame.display.flip()
 
+    def draw(self):
+        self.draw_background()
+        self.snake.draw()
+        self.apple.draw()
+        # self.display_score()
+        pygame.display.flip()
+        time.sleep(0.01)
+
     def reset(self):
         self.paused = False
         self.snake = Snake(self.surface, (BOARD_SIZE[0] // 2, BOARD_SIZE[1] // 2), 3)
@@ -204,11 +213,11 @@ class Game:
             for event in pygame.event.get():
                 if event.type == KEYDOWN:
 
-                    # Exit key
+                    # Esc --> Quit game
                     if event.key == K_ESCAPE:
                         running = False
 
-                    # Pause / Unpause:
+                    # Enter --> Reset
                     elif event.key == K_RETURN:
                         self.reset()
 
@@ -219,14 +228,13 @@ class Game:
                 if not self.paused:
                     self.play()
                     self.draw()
+                    print(self.snake)
 
             except GameOver:
                 print("Individual #{}\t | Score: {}".format(self.individual_count, self.snake.length))
                 self.reset()
                 # self.paused = True
                 # self.display_game_over()
-
-
 
 
 if __name__ == "__main__":
