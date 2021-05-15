@@ -202,16 +202,6 @@ class Game:
                             True, (255, 255, 255))
         self.surface.blit(score, (10, 10))
 
-    def display_game_over(self):
-        print("Game Over")
-        self.surface.fill(BACKGROUND_COLOR)
-        font = pygame.font.SysFont('arial', 30)
-        message = font.render("Game Over! Your score was: {}".format(self.snake.length), True, (255, 255, 255))
-        self.surface.blit(message, (200, 200))
-        message = font.render("Press ENTER to try again.", True, (255, 255, 255))
-        self.surface.blit(message, (200, 250))
-        pygame.display.flip()
-
     def draw(self):
         self.draw_background()
         self.snake.draw()
@@ -226,10 +216,7 @@ class Game:
         individual = dict()
         individual['fitness'] = snake.fitness
         individual['score'] = snake.length
-        individual['weights1'] = snake.nn.weights1
-        individual['weights2'] = snake.nn.weights2
-        individual['bias1'] = snake.nn.bias1
-        individual['bias2'] = snake.nn.bias2
+        individual['parameters'] = snake.nn.parameters
         self.individuals.append(individual)
 
     def get_data(self):
