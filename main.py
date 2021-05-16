@@ -1,12 +1,12 @@
 import numpy as np
-import pandas as pd
 import pygame
 import math
 from pygame.locals import *
 import time
 from random import randint
 from neural_network import NeuralNetwork
-
+import pickle
+from genetic_algorithm import *
 
 BACKGROUND_COLOR = (150, 150, 150)
 BLOCK_SIZE = 15
@@ -36,17 +36,17 @@ class Apple:
 
 
 class Snake:
-    def __init__(self, parent_screen, initial_pos, length):
+    def __init__(self, parameters, parent_screen, initial_pos, length):
         self.parent_screen = parent_screen
         self.length = length
         self.x = [initial_pos[0]] * length
         self.y = [initial_pos[1]] * length
-        self.energy = 30
+        self.energy = 60
         self.movements = (-1, 0, 1)        # movements = ('turn left', 'go straight', 'turn right')
         self.directions = ('up', 'right', 'down', 'left')
         self.current_direction_index = 0
         self.current_direction = self.directions[self.current_direction_index]
-        self.nn = NeuralNetwork()
+        self.nn = NeuralNetwork(parameters)
         self.fitness = 0.0
         self.steps = 0
 
@@ -91,7 +91,7 @@ class Snake:
         self.y.append(self.y[-1])
 
     def reset_energy(self):
-        self.energy = 100
+        self.energy = 60
 
 
 def is_collision(x0, y0, x1, y1):
@@ -106,16 +106,17 @@ def get_distance(x0, y0, x1, y1):
 
 
 class Game:
-    def __init__(self, population=100, draw=True, verbose=False):
+    def __init__(self, population=100, parameters=None, draw=True, verbose=False):
         pygame.init()
         self.surface = pygame.display.set_mode(WINDOW_SIZE)
         self.surface.fill(BACKGROUND_COLOR)
         self.draw_enabled = draw
         self.print_enabled = verbose
         self.delay = 0.01
-        self.paused = True
+        self.paused = draw
 
-        self.snake = Snake(self.surface, (BOARD_SIZE[0] // 2, BOARD_SIZE[1] // 2), 3)
+        self.parameters = parameters
+        self.snake = Snake(parameters[0], self.surface, (BOARD_SIZE[0] // 2, BOARD_SIZE[1] // 2), 2)
         self.apple = Apple(self.surface)
 
         self.individuals = []
@@ -211,24 +212,23 @@ class Game:
         time.sleep(self.delay)
 
     def save_individual(self, snake: Snake):
-        print("Individual #{}\t | Score: {}\t | Fitness: {}".format(
-            len(self.individuals), self.snake.length, self.snake.fitness))
-        individual = dict()
+        if self.print_enabled:
+            print("Individual #{}\t | Score: {}\t | Fitness: {}".format(
+                len(self.individuals), self.snake.length, self.snake.fitness))
+
+        individual = {}
         individual['fitness'] = snake.fitness
         individual['score'] = snake.length
         individual['parameters'] = snake.nn.parameters
         self.individuals.append(individual)
 
-    def get_data(self):
-        return pd.DataFrame(data=self.individuals)
-
     def reset(self):
-        self.snake = Snake(self.surface, (BOARD_SIZE[0] // 2, BOARD_SIZE[1] // 2), 3)
+        self.snake = Snake(self.parameters[len(self.individuals)], self.surface, (BOARD_SIZE[0] // 2, BOARD_SIZE[1] // 2), 3)
         self.apple = Apple(self.surface)
 
     def run_one_step(self):
         self.play()
-        if self.draw_enabled:
+        if self.draw_enabled or (self.population - len(self.individuals)) <= 1:
             self.draw()
         if self.print_enabled:
             print(self.snake)
@@ -290,14 +290,61 @@ class Game:
 
             except GameOver:
                 self.save_individual(self.snake)
-                if len(self.individuals) <= self.population:
+                if len(self.individuals) < self.population:
                     self.reset()
                 else:
                     running = False
 
+    def save(self):
+        pickle.dump(self.individuals, open('pop.pck', 'wb'))
+
 
 if __name__ == "__main__":
-    print("Starting game!")
-    game = Game(population=100, draw=True)
-    game.run()
+
+    population = 1000
+    nn_architecture = [(2, 4), (4, 3)]
+    crossover_rate = 0.5
+    mutation_rate = 0.1
+
+    # initial parameters will be chosen at random
+    parameters = [None for _ in range(population)]
+
+    for generation in range(100):
+
+        game = Game(population=population, parameters=parameters, draw=False)
+        game.run()
+
+        fitness_list = [individual['fitness'] for individual in game.individuals]
+        score_list = [individual['score'] for individual in game.individuals]
+
+        fitness_array = np.array(fitness_list)
+        score_array = np.array(score_list)
+
+        print('---------------------------------------------')
+        print('Generation #{}'.format(generation))
+
+        print('Fitness: Max: {}\t | Min: {}\t | Mean: {}'.format(
+            fitness_array.max(), fitness_array.min(), fitness_array.mean()))
+        print('Score: Max: {}\t | Min: {}\t | Mean: {}'.format(
+            score_array.max(), score_array.min(), score_array.mean()))
+
+        # selecting best individuals for next generation:
+        data = game.individuals
+        mating_pool = [tournament_selection(data) for _ in range(len(data))]
+        parent_chromosomes = [flatten_parameters(parent['parameters']) for parent in mating_pool]
+        crossed_chromosomes = []
+        for pair in range(0, len(parent_chromosomes), 2):
+            for child in crossover(parent_chromosomes[pair], parent_chromosomes[pair + 1], crossover_rate):
+                child = mutation(child, mutation_rate)
+                crossed_chromosomes.append(child)
+
+        # reshape parameters in the neural network architecture
+        children_parameters = []
+        for chromosome in crossed_chromosomes:
+            children_parameters.append(reshape_parameters(chromosome, nn_architecture))
+
+        parameters = children_parameters
+
     print("Game Finished!")
+
+# TODO: random apple positions make it harder to train the network

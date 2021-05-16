@@ -20,7 +20,6 @@ def crossover(parent_1, parent_2, crossover_rate):
         # perform crossover
         child_1 = parent_1[:crossover_point] + parent_2[crossover_point:]
         child_2 = parent_2[:crossover_point] + parent_1[crossover_point:]
-        print("Crossed at " + str(crossover_point))
     else:
         # no crossover
         child_1 = parent_1.copy()

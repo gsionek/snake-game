@@ -9,14 +9,17 @@ def sigmoid(x):
 
 
 class NeuralNetwork:
-    def __init__(self):
-        self.parameters = dict()
-        self.parameters['W1'] = np.random.uniform(-1, 1, (2, 4))
-        self.parameters['W2'] = np.random.uniform(-1, 1, (4, 3))
-        self.parameters['b1'] = np.random.uniform(-1, 1, (1, 4))
-        self.parameters['b2'] = np.random.uniform(-1, 1, (1, 3))
+    def __init__(self, parameters=None):
+        # TODO: make NN architecture configurable on init
+        if parameters is None:
+            self.parameters = {
+                'W1': np.random.uniform(-1, 1, (2, 4)),
+                'W2': np.random.uniform(-1, 1, (4, 3)),
+                'b1': np.random.uniform(-1, 1, (1, 4)),
+                'b2': np.random.uniform(-1, 1, (1, 3))}
+        else:
+            self.parameters = parameters
 
-        # TODO: make parameters a dictionary
         self.layer1 = np.zeros((1, 4))
         self.output = np.zeros((1, 3))
 
