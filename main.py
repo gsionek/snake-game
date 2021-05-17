@@ -10,7 +10,7 @@ from genetic_algorithm import *
 
 BACKGROUND_COLOR = (150, 150, 150)
 BLOCK_SIZE = 15
-BOARD_SIZE = (30, 30)
+BOARD_SIZE = (20, 20)
 WINDOW_SIZE = (BOARD_SIZE[0] * BLOCK_SIZE, BOARD_SIZE[1] * BLOCK_SIZE)
 
 
@@ -21,9 +21,9 @@ class GameOver(BaseException):
 class Apple:
     def __init__(self, parent_screen):
         self.parent_screen = parent_screen
-        self.x = 0
-        self.y = 0
-        self.move()
+        self.x = BOARD_SIZE[0] // 4
+        self.y = BOARD_SIZE[1] // 4
+        # self.move_training()
 
     def draw(self):
         apple = Rect(self.x * BLOCK_SIZE, self.y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE)
@@ -34,9 +34,13 @@ class Apple:
         self.x = randint(0, BOARD_SIZE[0] - 1)
         self.y = randint(0, BOARD_SIZE[1] - 1)
 
+    def move_training(self):
+        self.x = np.random.choice([1, 3]) * BOARD_SIZE[0] // 4
+        self.y = np.random.choice([1, 3]) * BOARD_SIZE[1] // 4
+
 
 class Snake:
-    def __init__(self, parameters, parent_screen, initial_pos, length):
+    def __init__(self, architecture, parameters, parent_screen, initial_pos, length):
         self.parent_screen = parent_screen
         self.length = length
         self.x = [initial_pos[0]] * length
@@ -46,7 +50,7 @@ class Snake:
         self.directions = ('up', 'right', 'down', 'left')
         self.current_direction_index = 0
         self.current_direction = self.directions[self.current_direction_index]
-        self.nn = NeuralNetwork(parameters)
+        self.nn = NeuralNetwork(architecture, parameters)
         self.fitness = 0.0
         self.steps = 0
 
@@ -106,22 +110,27 @@ def get_distance(x0, y0, x1, y1):
 
 
 class Game:
-    def __init__(self, population=100, parameters=None, draw=True, verbose=False):
+    def __init__(self, architecture, population=100, parameters=None, draw=True, verbose=False):
         pygame.init()
         self.surface = pygame.display.set_mode(WINDOW_SIZE)
         self.surface.fill(BACKGROUND_COLOR)
         self.draw_enabled = draw
         self.print_enabled = verbose
         self.delay = 0.01
-        self.paused = draw
+        self.paused = False
 
         self.parameters = parameters
-        self.snake = Snake(parameters[0], self.surface, (BOARD_SIZE[0] // 2, BOARD_SIZE[1] // 2), 2)
+        self.architecture = architecture
+        self.snake = self.create_snake(self.architecture, self.parameters[0])
         self.apple = Apple(self.surface)
 
         self.individuals = []
         self.last_distance = 0
+        self.steps_in_good_direction = 0
         self.population = population
+
+    def create_snake(self, architecture, parameter):
+        return Snake(architecture, parameter, self.surface, (BOARD_SIZE[0] // 2, BOARD_SIZE[1] // 2), 2)
 
     def get_next_direction(self):
         input1 = self.apple.x - self.snake.x[0]
@@ -156,6 +165,8 @@ class Game:
 
         # check if snake collides with apple:
         if is_collision(self.apple.x, self.apple.y, self.snake.x[0], self.snake.y[0]):
+            self.snake.fitness += 100
+
             # snake hits maximum length
             if self.snake.length >= BOARD_SIZE[0] * BOARD_SIZE[1]:
                 raise GameOver
@@ -167,7 +178,7 @@ class Game:
             # TODO: get all available spaces and then choose one of them at random
             apple_in_snake = True
             while apple_in_snake:
-                self.apple.move()
+                self.apple.move_training()
                 apple_in_snake = False
                 for i in range(self.snake.length):
                     if is_collision(self.apple.x, self.apple.y, self.snake.x[i], self.snake.y[i]):
@@ -176,8 +187,10 @@ class Game:
         # Calculate fitness:
         distance = get_distance(self.apple.x, self.apple.y, self.snake.x[0], self.snake.y[0])
         if distance < self.last_distance:
-            self.snake.fitness += 1
+            self.steps_in_good_direction += 1
+            self.snake.fitness += 1 * self.steps_in_good_direction
         else:
+            self.steps_in_good_direction = 0
             self.snake.fitness -= 1
         self.last_distance = distance
 
@@ -223,7 +236,7 @@ class Game:
         self.individuals.append(individual)
 
     def reset(self):
-        self.snake = Snake(self.parameters[len(self.individuals)], self.surface, (BOARD_SIZE[0] // 2, BOARD_SIZE[1] // 2), 3)
+        self.snake = self.create_snake(self.architecture, self.parameters[len(self.individuals)])
         self.apple = Apple(self.surface)
 
     def run_one_step(self):
@@ -303,15 +316,20 @@ if __name__ == "__main__":
 
     population = 1000
     nn_architecture = [(2, 4), (4, 3)]
-    crossover_rate = 0.5
+    crossover_rate = 0.7
     mutation_rate = 0.1
 
     # initial parameters will be chosen at random
     parameters = [None for _ in range(population)]
 
+    # game = Game(population=population, parameters=parameters, draw=True)
+    # game.run()
+    game = None
+    fitness_array = None
+
     for generation in range(100):
 
-        game = Game(population=population, parameters=parameters, draw=False)
+        game = Game(architecture=nn_architecture, population=population, parameters=parameters, draw=False)
         game.run()
 
         fitness_list = [individual['fitness'] for individual in game.individuals]
@@ -331,6 +349,11 @@ if __name__ == "__main__":
         # selecting best individuals for next generation:
         data = game.individuals
         mating_pool = [tournament_selection(data) for _ in range(len(data))]
+
+        mating_fitness = np.array([parent['fitness'] for parent in mating_pool])
+        print('Parent Fitness: Max: {}\t | Min: {}\t | Mean: {}'.format(
+            mating_fitness.max(), mating_fitness.min(), mating_fitness.mean()))
+
         parent_chromosomes = [flatten_parameters(parent['parameters']) for parent in mating_pool]
         crossed_chromosomes = []
         for pair in range(0, len(parent_chromosomes), 2):
@@ -345,6 +368,16 @@ if __name__ == "__main__":
 
         parameters = children_parameters
 
+    # save last generation:
+    pickle.dump(game.individuals, open('gen_fit_'+str(fitness_array.max()) + '.pck', 'wb'))
+
     print("Game Finished!")
 
-# TODO: random apple positions make it harder to train the network
+# TODO: Create visualization for Neural Network
+# TODO: Create representation of fitness evolution
+# TODO: Create Neural Network outside of Snake init
+# TODO: Improve network architecture configuration to array of "neurons"
+# TODO: Fix style errors
+# TODO: Refactor Game and __main__ into different classes/application
+# TODO: Make possible to choose and display a selected individual
+# TODO: Add seed to random to replicate scenarios
