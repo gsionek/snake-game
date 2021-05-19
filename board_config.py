@@ -1,0 +1,3 @@
+
+BOARD_SIZE = (20, 20)
+BLOCK_SIZE = 20  # px
