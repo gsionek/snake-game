@@ -18,27 +18,6 @@ class GameOver(BaseException):
     pass
 
 
-class Apple:
-    def __init__(self, parent_screen):
-        self.parent_screen = parent_screen
-        self.x = BOARD_SIZE[0] // 4
-        self.y = BOARD_SIZE[1] // 4
-        # self.move_training()
-
-    def draw(self):
-        apple = Rect(self.x * BLOCK_SIZE, self.y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE)
-        pygame.draw.rect(self.parent_screen, (255, 0, 0), apple)
-        pygame.draw.rect(self.parent_screen, (0, 0, 0), apple, 2)
-
-    def move(self):
-        self.x = randint(0, BOARD_SIZE[0] - 1)
-        self.y = randint(0, BOARD_SIZE[1] - 1)
-
-    def move_training(self):
-        self.x = np.random.choice([1, 3]) * BOARD_SIZE[0] // 4
-        self.y = np.random.choice([1, 3]) * BOARD_SIZE[1] // 4
-
-
 class Snake:
     def __init__(self, architecture, parameters, parent_screen, initial_pos, length):
         self.parent_screen = parent_screen
