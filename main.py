@@ -55,8 +55,8 @@ class Snake:
         self.steps = 0
 
     def __str__(self):
-        return "Snake pos=({}, {})\t dir={}\t nn={}".format(
-            self.x[0], self.y[0], self.current_direction, self.nn.output)
+        return "Snake pos=({}, {})\t e={}\t f={}\t d={}\t   out={}\t ".format(
+            self.x[0], self.y[0], self.energy, self.fitness, self.current_direction, self.nn.output)
 
     def draw(self):
         for i in range(1, self.length):
@@ -110,7 +110,7 @@ def get_distance(x0, y0, x1, y1):
 
 
 class Game:
-    def __init__(self, architecture, population=100, parameters=None, draw=True, verbose=False):
+    def __init__(self, architecture, population=100, parameters=None, draw=True, verbose='none'):
         pygame.init()
         self.surface = pygame.display.set_mode(WINDOW_SIZE)
         self.surface.fill(BACKGROUND_COLOR)
@@ -130,7 +130,7 @@ class Game:
         self.population = population
 
     def create_snake(self, architecture, parameter):
-        return Snake(architecture, parameter, self.surface, (BOARD_SIZE[0] // 2, BOARD_SIZE[1] // 2), 2)
+        return Snake(architecture, parameter, self.surface, (BOARD_SIZE[0] // 2, BOARD_SIZE[1] // 2), 3)
 
     def get_next_direction(self):
         input1 = self.apple.x - self.snake.x[0]
@@ -165,13 +165,13 @@ class Game:
 
         # check if snake collides with apple:
         if is_collision(self.apple.x, self.apple.y, self.snake.x[0], self.snake.y[0]):
-            self.snake.fitness += 100
+            self.snake.fitness += self.snake.energy * 2
 
             # snake hits maximum length
             if self.snake.length >= BOARD_SIZE[0] * BOARD_SIZE[1]:
                 raise GameOver
 
-            self.snake.increase()
+            # self.snake.increase()
             self.snake.reset_energy()
 
             # move apple until it is not in a occupied space by the snake
@@ -188,7 +188,7 @@ class Game:
         distance = get_distance(self.apple.x, self.apple.y, self.snake.x[0], self.snake.y[0])
         if distance < self.last_distance:
             self.steps_in_good_direction += 1
-            self.snake.fitness += 1 * self.steps_in_good_direction
+            self.snake.fitness += 1     # * self.steps_in_good_direction
         else:
             self.steps_in_good_direction = 0
             self.snake.fitness -= 1
@@ -225,7 +225,7 @@ class Game:
         time.sleep(self.delay)
 
     def save_individual(self, snake: Snake):
-        if self.print_enabled:
+        if self.print_enabled == 'simple' or self.print_enabled == 'detailed':
             print("Individual #{}\t | Score: {}\t | Fitness: {}".format(
                 len(self.individuals), self.snake.length, self.snake.fitness))
 
@@ -243,7 +243,7 @@ class Game:
         self.play()
         if self.draw_enabled or (self.population - len(self.individuals)) <= 1:
             self.draw()
-        if self.print_enabled:
+        if self.print_enabled == 'detailed':
             print(self.snake)
 
     def run(self):
@@ -274,13 +274,22 @@ class Game:
                     elif event.key == K_r:
                         self.reset()
 
+                    # K --> Kill individual
+                    elif event.key == K_k:
+                        self.snake.energy = 0
+
                     # D --> Draw Enable/Disable
                     elif event.key == K_d:
                         self.draw_enabled = not self.draw_enabled
 
                     # V --> Print Enable/Disable
                     elif event.key == K_v:
-                        self.print_enabled = not self.print_enabled
+                        if self.print_enabled == 'none':
+                            self.print_enabled = 'simple'
+                        elif self.print_enabled == 'simple':
+                            self.print_enabled = 'detailed'
+                        else:
+                            self.print_enabled = 'none'
 
                     # 1 --> Fast Draw Speed
                     elif event.key == K_1:
@@ -314,7 +323,7 @@ class Game:
 
 if __name__ == "__main__":
 
-    population = 1000
+    population = 500
     nn_architecture = [(2, 4), (4, 3)]
     crossover_rate = 0.7
     mutation_rate = 0.1
@@ -327,7 +336,7 @@ if __name__ == "__main__":
     game = None
     fitness_array = None
 
-    for generation in range(100):
+    for generation in range(30):
 
         game = Game(architecture=nn_architecture, population=population, parameters=parameters, draw=False)
         game.run()
@@ -370,6 +379,7 @@ if __name__ == "__main__":
 
     # save last generation:
     pickle.dump(game.individuals, open('gen_fit_'+str(fitness_array.max()) + '.pck', 'wb'))
+    # pickle.dump(game.individuals, open('lower-left.pck', 'wb'))
 
     print("Game Finished!")
 
