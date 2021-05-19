@@ -10,30 +10,38 @@ def sigmoid(x):
 
 class NeuralNetwork:
     def __init__(self, architecture, parameters=None):
-        # TODO: make NN architecture configurable on init
-        if parameters is None:
-            self.parameters = {
-                'W1': np.random.uniform(-1, 1, architecture[0]),
-                'W2': np.random.uniform(-1, 1, architecture[1]),
-                'b1': np.random.uniform(-1, 1, (1,  architecture[0][1])),
-                'b2': np.random.uniform(-1, 1, (1,  architecture[1][1]))}
-        else:
-            self.parameters = parameters
+        self.architecture = architecture
+        self.outputs = []
 
-        self.layer1 = np.zeros((1, 4))
-        self.output = np.zeros((1, 3))
+        if parameters is not None:
+            self.parameters = parameters
+        else:
+            # randomize parameters
+            self.parameters = {}
+            for layer in range(1, len(architecture)):
+                key = 'W'+str(layer)
+                self.parameters[key] = np.random.uniform(-1, 1, (architecture[layer - 1], architecture[layer]))
+                key = 'b'+str(layer)
+                self.parameters[key] = np.random.uniform(-1, 1, (1, architecture[layer]))
 
     def feedforward(self, x):
-        self.layer1 = sigmoid(np.dot(x, self.parameters['W1']) + self.parameters['b1'])
-        self.output = sigmoid(np.dot(self.layer1, self.parameters['W2']) + self.parameters['b2'])
+        self.outputs = []
+        for i in range(len(self.architecture) - 1):
+            output = sigmoid(np.dot(x, self.parameters['W'+str(i+1)]) + self.parameters['b'+str(i+1)])
+            x = output
+            self.outputs.append(output)     # save for display
 
 
 if __name__ == "__main__":
+    np.random.seed(2020)
+    nn = NeuralNetwork((2, 4, 3))
     X = np.array([[1, 1]])
-
-    nn = NeuralNetwork()
     nn.feedforward(X)
-    print(nn.parameters['W1'])
-    print(nn.parameters['W2'])
-    print(nn.layer1)
-    print(nn.output)
+    for parameter in nn.parameters.keys():
+        print('{}: shape {}\t | size {}'.format(
+            parameter, nn.parameters[parameter].shape, nn.parameters[parameter].size))
+        print(nn.parameters[parameter])
+
+    for y in nn.outputs:
+        print('output:')
+        print(y)
