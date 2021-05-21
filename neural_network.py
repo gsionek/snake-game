@@ -30,7 +30,10 @@ class NeuralNetwork:
             output = sigmoid(np.dot(x, self.parameters['W'+str(i+1)]) + self.parameters['b'+str(i+1)])
             x = output
             self.outputs.append(output)     # save for display
+        return self.outputs[-1]
 
+    def get_output(self):
+        return self.outputs[-1]
 
 if __name__ == "__main__":
     np.random.seed(2020)
