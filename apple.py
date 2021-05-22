@@ -4,6 +4,7 @@ from board_config import BOARD_SIZE, BLOCK_SIZE
 
 
 class Apple:
+    """"Apple class defines the random apple movement and drawing methods."""
     def __init__(self, parent_screen):
         self.surface = parent_screen
         self.x = 0

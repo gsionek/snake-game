@@ -6,9 +6,14 @@ from neural_network import NeuralNetwork
 
 
 class Snake:
-    def __init__(self, parent_screen, initial_pos=(0, 0)):
+    """"Snake class defines the snake movement logic and includes a neural network to calculate the next movement
+    based on inputs. It also defines drawing methods."""
+    def __init__(self, parent_screen, brain, initial_pos=(0, 0)):
         self.surface = parent_screen
-        self.nn = NeuralNetwork((2, 4, 4))
+        if brain is None:
+            self.brain = NeuralNetwork((2, 4, 4))
+        else:
+            self.brain = brain
         self.length = 2
         self.color = tuple(random.randint(0, 255, (1, 3)))
 
@@ -26,7 +31,7 @@ class Snake:
 
     def __str__(self):
         return "Snake pos=({},{})\t e={}\t f={}\t d={}\t   out={}\t ".format(
-            self.x[0], self.y[0], self.energy, self.fitness, self.current_direction, self.nn.get_output())
+            self.x[0], self.y[0], self.energy, self.fitness, self.current_direction, self.brain.get_output())
 
     def draw(self):
         # draw tail:
@@ -41,7 +46,7 @@ class Snake:
         pygame.draw.rect(self.surface, (0, 0, 0), block, 2)
 
     def process_inputs(self, inputs):
-        output = self.nn.feedforward(inputs)
+        output = self.brain.feedforward(inputs)
         maximum_index = int(np.argmax(output))
         self.current_direction = self.directions[maximum_index]
 

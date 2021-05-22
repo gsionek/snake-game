@@ -9,6 +9,8 @@ def sigmoid(x):
 
 
 class NeuralNetwork:
+    """"Defines a basic feed-forward neural network. The weights and biases can be passed as parameter on
+    initialization or can be generated at random."""
     def __init__(self, architecture, parameters=None):
         self.architecture = architecture
         self.outputs = []
@@ -34,6 +36,7 @@ class NeuralNetwork:
 
     def get_output(self):
         return self.outputs[-1]
+
 
 if __name__ == "__main__":
     np.random.seed(2020)
