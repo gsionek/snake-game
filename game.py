@@ -7,12 +7,12 @@ import math
 class Game:
     """"Game class contains the Snake and Apple and defines the game rules. It also calculates the information
     for the neural network inputs and updates the fitness of the snake along the game."""
-    def __init__(self, parent_screen, brain=None, draw_enabled=False, print_enabled=False):
+    def __init__(self, parent_screen, parameters=None, draw_enabled=False, print_enabled=False):
         self.surface = parent_screen
         self.draw_enabled = draw_enabled
         self.print_enabled = print_enabled
 
-        self.snake = Snake(self.surface, brain, (BOARD_SIZE[0] // 2, BOARD_SIZE[1] // 2))
+        self.snake = Snake(self.surface, parameters, (BOARD_SIZE[0] // 2, BOARD_SIZE[1] // 2))
         self.apple = Apple(self.surface)
 
         self.last_distance = 0

@@ -8,13 +8,10 @@ from neural_network import NeuralNetwork
 class Snake:
     """"Snake class defines the snake movement logic and includes a neural network to calculate the next movement
     based on inputs. It also defines drawing methods."""
-    def __init__(self, parent_screen, brain, initial_pos=(0, 0)):
+    def __init__(self, parent_screen, parameters, initial_pos=(0, 0)):
         self.surface = parent_screen
-        if brain is None:
-            self.brain = NeuralNetwork((2, 4, 4))
-        else:
-            self.brain = brain
-        self.length = 2
+        self.brain = NeuralNetwork((2, 4, 4), parameters)
+        self.length = 3
         self.color = tuple(random.randint(0, 255, (1, 3)))
 
         self.x = [initial_pos[0]] * self.length

@@ -14,6 +14,7 @@ class NeuralNetwork:
     def __init__(self, architecture, parameters=None):
         self.architecture = architecture
         self.outputs = []
+        self.parameters = None
 
         if parameters is not None:
             self.parameters = parameters

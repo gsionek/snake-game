@@ -3,13 +3,13 @@ import numpy as np
 from numpy.random import randint, rand
 
 
-def tournament_selection(population, number_of_competitors=3):
+def tournament_selection(parameters, fitness, number_of_competitors=3):
     # first competitor is taken at random
-    best_competitor = randint(len(population))
-    for other_competitor in randint(0, len(population), number_of_competitors - 1):
-        if population[other_competitor]['fitness'] > population[best_competitor]['fitness']:
+    best_competitor = randint(len(parameters))
+    for other_competitor in randint(0, len(parameters), number_of_competitors - 1):
+        if fitness[other_competitor] > fitness[best_competitor]:
             best_competitor = other_competitor
-    return population[best_competitor]
+    return parameters[best_competitor]
 
 
 # TODO: Research a proper way to do crossover with floating parameters
