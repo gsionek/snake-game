@@ -48,19 +48,19 @@ def reshape_parameters(vector, architecture):
     parameters = {}
 
     # reshape weights
-    for layer in range(len(architecture)):
-        elements = architecture[layer][0] * architecture[layer][1]
+    for layer in range(len(architecture) - 1):
+        elements = architecture[layer] * architecture[layer + 1]
         last = first + elements
-        matrix = np.reshape(vector[first:last], architecture[layer])
+        matrix = np.reshape(vector[first:last], (architecture[layer], architecture[layer + 1]))
         parameters['W'+str(layer+1)] = matrix
         # for next iteration
         first = last
 
     # reshape biases:
-    for layer in range(len(architecture)):
-        elements = architecture[layer][1]
+    for layer in range(len(architecture) - 1):
+        elements = architecture[layer+1]
         last = first + elements
-        matrix = np.reshape(vector[first:last], (1, architecture[layer][1]))
+        matrix = np.reshape(vector[first:last], (1, architecture[layer+1]))
         parameters['b'+str(layer+1)] = matrix
         # for next iteration
         first = last
@@ -76,7 +76,6 @@ if __name__ == "__main__":
 
     mating_pool = [tournament_selection(data) for _ in range(len(data))]
 
-    mating_pool = data
     parent_chromosomes = [flatten_parameters(parent['parameters']) for parent in mating_pool]
 
     crossover_rate = 0.0
