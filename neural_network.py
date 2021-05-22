@@ -8,6 +8,10 @@ def sigmoid(x):
     return 1.0 / (1 + np.exp(-x))
 
 
+def relu(x):
+    return np.maximum(x, 0.0)
+
+
 class NeuralNetwork:
     """"Defines a basic feed-forward neural network. The weights and biases can be passed as parameter on
     initialization or can be generated at random."""
@@ -30,7 +34,7 @@ class NeuralNetwork:
     def feedforward(self, x):
         self.outputs = []
         for i in range(len(self.architecture) - 1):
-            output = sigmoid(np.dot(x, self.parameters['W'+str(i+1)]) + self.parameters['b'+str(i+1)])
+            output = relu(np.dot(x, self.parameters['W'+str(i+1)]) + self.parameters['b'+str(i+1)])
             x = output
             self.outputs.append(output)     # save for display
         return self.outputs[-1]
