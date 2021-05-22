@@ -1,4 +1,3 @@
-import pickle
 import numpy as np
 from numpy.random import randint, rand
 
@@ -12,7 +11,6 @@ def tournament_selection(parameters, fitness, number_of_competitors=3):
     return parameters[best_competitor]
 
 
-# TODO: Research a proper way to do crossover with floating parameters
 def crossover(parent_1, parent_2, crossover_rate):
     if rand() < crossover_rate:
         # select crossover point that is not on the end of the string
@@ -27,7 +25,6 @@ def crossover(parent_1, parent_2, crossover_rate):
     return [child_1, child_2]
 
 
-# TODO: Research a proper way to do mutation with floating parameters
 def mutation(chromosome, mutation_rate):
     for parameter in chromosome:
         if rand() < mutation_rate:
@@ -68,24 +65,28 @@ def reshape_parameters(vector, architecture):
     return parameters
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    nn_architecture = [(2, 4), (4, 3)]
+    # # TODO Rewrite test for GA
 
-    data = pickle.load(open('pop.pck', 'rb'))
-
-    mating_pool = [tournament_selection(data) for _ in range(len(data))]
-
-    parent_chromosomes = [flatten_parameters(parent['parameters']) for parent in mating_pool]
-
-    crossover_rate = 0.0
-    mutation_rate = 0.0
-    crossed_chromosomes = []
-    for i in range(0, len(parent_chromosomes), 2):
-        for child in crossover(parent_chromosomes[i], parent_chromosomes[i+1], crossover_rate):
-            child = mutation(child, mutation_rate)
-            crossed_chromosomes.append(child)
-
-    children_parameters = []
-    for chromosome in crossed_chromosomes:
-        children_parameters.append(reshape_parameters(chromosome, nn_architecture))
+    # import pickle
+    #
+    # nn_architecture = [(2, 4), (4, 3)]
+    #
+    # data = pickle.load(open('pop.pck', 'rb'))
+    #
+    # mating_pool = [tournament_selection(data) for _ in range(len(data))]
+    #
+    # parent_chromosomes = [flatten_parameters(parent['parameters']) for parent in mating_pool]
+    #
+    # crossover_rate = 0.0
+    # mutation_rate = 0.0
+    # crossed_chromosomes = []
+    # for i in range(0, len(parent_chromosomes), 2):
+    #     for child in crossover(parent_chromosomes[i], parent_chromosomes[i+1], crossover_rate):
+    #         child = mutation(child, mutation_rate)
+    #         crossed_chromosomes.append(child)
+    #
+    # children_parameters = []
+    # for chromosome in crossed_chromosomes:
+    #     children_parameters.append(reshape_parameters(chromosome, nn_architecture))

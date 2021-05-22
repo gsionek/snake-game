@@ -1,7 +1,7 @@
-import numpy as np
 from game import Game
 from board_config import *
-from genetic_algorithm import *
+import genetic_algorithm as ga
+import numpy as np
 import time
 import pygame
 from pygame import locals
@@ -67,21 +67,22 @@ class World:
 
     def create_next_generation(self):
         parameters_list = [game.snake.brain.parameters for game in self.current_generation]
-        selected_parameters = [tournament_selection(parameters_list, self.fitness_list)
+
+        mating_pool = [ga.tournament_selection(parameters_list, self.fitness_list)
                                for _ in range(len(parameters_list))]
 
-        parent_chromosomes = [flatten_parameters(brain) for brain in selected_parameters]
+        parent_chromosomes = [ga.flatten_parameters(brain) for brain in mating_pool]
         crossed_chromosomes = []
         for pair in range(0, len(parent_chromosomes), 2):
-            for child in crossover(parent_chromosomes[pair], parent_chromosomes[pair + 1], self.crossover_rate):
-                child = mutation(child, self.mutation_rate)
+            for child in ga.crossover(parent_chromosomes[pair], parent_chromosomes[pair + 1], self.crossover_rate):
+                child = ga.mutation(child, self.mutation_rate)
                 crossed_chromosomes.append(child)
 
         # reshape parameters in the neural network architecture
         new_parameters = []
         nn_architecture = self.current_generation[0].snake.brain.architecture
         for chromosome in crossed_chromosomes:
-            new_parameters.append(reshape_parameters(chromosome, nn_architecture))
+            new_parameters.append(ga.reshape_parameters(chromosome, nn_architecture))
 
         self.generation_number += 1
         self.current_generation = [Game(self.app.surface, parameters=parameters, draw_enabled=True)
@@ -90,7 +91,6 @@ class World:
     def run_generation(self):
         there_are_games_running = True
         while there_are_games_running and self.app.running:
-
             self.app.handle_events()
 
             if not self.app.paused:
@@ -115,7 +115,7 @@ class World:
 
 if __name__ == "__main__":
 
-    world = World(500)
+    world = World(population=500)
 
     for _ in range(50):
         world.run_generation()
