@@ -12,7 +12,7 @@ class Game:
         self.draw_enabled = draw_enabled
         self.print_enabled = print_enabled
 
-        self.snake = Snake(self.surface, parameters, (BOARD_SIZE[0] // 2, BOARD_SIZE[1] // 2))
+        self.snake = Snake(self.surface, parameters, initial_pos=(BOARD_SIZE[0] // 2, BOARD_SIZE[1] // 2))
         self.apple = Apple(self.surface)
 
         self.last_distance = 0

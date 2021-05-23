@@ -87,7 +87,8 @@ class World:
         mating_pool = [ga.tournament_selection(parameters_list, self.fitness_list)
                        for _ in range(len(parameters_list))]
 
-        parent_chromosomes = [ga.flatten_parameters(brain) for brain in mating_pool]
+        nn_architecture = self.current_generation[0].snake.brain.architecture
+        parent_chromosomes = [ga.flatten_parameters(brain, nn_architecture) for brain in mating_pool]
         crossed_chromosomes = []
         for pair in range(0, len(parent_chromosomes), 2):
             for child in ga.crossover(parent_chromosomes[pair], parent_chromosomes[pair + 1], self.app.crossover_rate):
@@ -96,7 +97,6 @@ class World:
 
         # reshape parameters in the neural network architecture
         new_parameters = []
-        nn_architecture = self.current_generation[0].snake.brain.architecture
         for chromosome in crossed_chromosomes:
             new_parameters.append(ga.reshape_parameters(chromosome, nn_architecture))
 
