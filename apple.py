@@ -18,10 +18,14 @@ class Apple:
         block = pygame.Rect(self.x * BLOCK_SIZE, self.y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE)
         pygame.draw.rect(self.surface, (255, 0, 0), block)
         pygame.draw.rect(self.surface, (0, 0, 0), block, 2)
+    #
+    # def move(self):
+    #     self.x = random.randint(0, BOARD_SIZE[0])
+    #     self.y = random.randint(0, BOARD_SIZE[1])
 
     def move(self):
-        self.x = random.randint(0, BOARD_SIZE[0])
-        self.y = random.randint(0, BOARD_SIZE[1])
+        self.x = random.choice((1, 7)) * BOARD_SIZE[0] // 8
+        self.y = random.choice((1, 7)) * BOARD_SIZE[1] // 8
 
 
 if __name__ == "__main__":

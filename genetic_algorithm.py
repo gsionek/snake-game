@@ -26,16 +26,23 @@ def crossover(parent_1, parent_2, crossover_rate):
 
 
 def mutation(chromosome, mutation_rate):
-    for parameter in chromosome:
+    new_chromosome = chromosome.copy()
+    for i in range(len(chromosome)):
         if rand() < mutation_rate:
-            parameter += np.random.uniform(-1, 1, 1)
+            chromosome[i] += np.random.uniform(-1, 1)
     return chromosome
 
 
-def flatten_parameters(parameters):
+def flatten_parameters(parameters, architecture):
     vector = []
-    for parameter in parameters.keys():
-        vector.extend(parameters[parameter].flatten())
+
+    # flatten weights
+    for layer in range(1, len(architecture)):
+        vector.extend(parameters['W' + str(layer)].flatten())
+
+    # flatten biases
+    for layer in range(1, len(architecture)):
+        vector.extend(parameters['b' + str(layer)].flatten())
 
     return vector
 
@@ -65,28 +72,31 @@ def reshape_parameters(vector, architecture):
     return parameters
 
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
 
-    # # TODO Rewrite test for GA
+    from snake import Snake
 
-    # import pickle
-    #
-    # nn_architecture = [(2, 4), (4, 3)]
-    #
-    # data = pickle.load(open('pop.pck', 'rb'))
-    #
-    # mating_pool = [tournament_selection(data) for _ in range(len(data))]
-    #
-    # parent_chromosomes = [flatten_parameters(parent['parameters']) for parent in mating_pool]
-    #
-    # crossover_rate = 0.0
-    # mutation_rate = 0.0
-    # crossed_chromosomes = []
-    # for i in range(0, len(parent_chromosomes), 2):
-    #     for child in crossover(parent_chromosomes[i], parent_chromosomes[i+1], crossover_rate):
-    #         child = mutation(child, mutation_rate)
-    #         crossed_chromosomes.append(child)
-    #
-    # children_parameters = []
-    # for chromosome in crossed_chromosomes:
-    #     children_parameters.append(reshape_parameters(chromosome, nn_architecture))
+    nn_architecture = (2, 4, 3)
+    snakes = [Snake(None, None, nn_architecture) for _ in range(2)]
+
+    crossover_rate = 0.0
+    mutation_rate = 0.0
+
+    parameters_list = [snake.brain.parameters for snake in snakes]
+    fitness_list = [1, 2]
+    mating_pool = [tournament_selection(parameters_list, fitness_list)
+                   for _ in range(len(parameters_list))]
+
+    parent_chromosomes = [flatten_parameters(brain, nn_architecture) for brain in mating_pool]
+    crossed_chromosomes = []
+    for pair in range(0, len(parent_chromosomes), 2):
+        for child in crossover(parent_chromosomes[pair], parent_chromosomes[pair + 1], crossover_rate):
+            child = mutation(child, mutation_rate)
+            crossed_chromosomes.append(child)
+
+    # reshape parameters in the neural network architecture
+    new_parameters = []
+    for chromosome in crossed_chromosomes:
+        new_parameters.append(reshape_parameters(chromosome, nn_architecture))
+
+    print('done')

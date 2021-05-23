@@ -5,8 +5,8 @@ import math
 
 
 class Game:
-    """"Game class contains the Snake and Apple and defines the game rules. It also calculates the information
-    for the neural network inputs and updates the fitness of the snake along the game."""
+    """"Game class contains the Snake and Apple and defines the game rules. It also calculates the inputs for the
+    neural network and updates the fitness of the snake along the game."""
     def __init__(self, parent_screen, parameters=None, draw_enabled=False, print_enabled=False):
         self.surface = parent_screen
         self.draw_enabled = draw_enabled
@@ -18,10 +18,23 @@ class Game:
         self.last_distance = 0
         self.game_over = False
 
-    def get_inputs(self):
+    def get_apple_vision(self):
         delta_x = self.apple.x - self.snake.x[0]
         delta_y = self.apple.y - self.snake.y[0]
         return delta_x, delta_y
+
+    def get_wall_vision(self):
+        left_vision = self.snake.x[0]
+        up_vision = self.snake.y[0]
+        right_vision = (BOARD_SIZE[0] - 1) - self.snake.x[0]
+        down_vision = (BOARD_SIZE[1] - 1) - self.snake.y[0]
+        return left_vision, up_vision, right_vision, down_vision
+
+    def get_body_vision(self):
+        pass
+
+    def get_inputs(self):
+        return self.get_apple_vision() + self.get_wall_vision()
 
     def update_fitness(self):
         distance = get_distance(self.apple.x, self.apple.y, self.snake.x[0], self.snake.y[0])
@@ -69,7 +82,7 @@ class Game:
         if is_collision(self.apple.x, self.apple.y, self.snake.x[0], self.snake.y[0]):
 
             # increase fitness:
-            self.snake.fitness += self.snake.energy * 2
+            self.snake.fitness += 100 + self.snake.energy * 2
 
             # snake hits maximum length
             if self.snake.length >= BOARD_SIZE[0] * BOARD_SIZE[1]:

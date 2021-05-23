@@ -15,6 +15,9 @@ class App:
         self.surface = pygame.display.set_mode(WINDOW_SIZE)
         self.running = True
         self.paused = False
+        self.delay = 0
+        self.mutation_rate = 0.3
+        self.crossover_rate = 0.7
 
     def draw_background(self):
         self.surface.fill(BACKGROUND_COLOR)
@@ -41,10 +44,23 @@ class App:
                 # Enter --> Pause
                 elif event.key == locals.K_RETURN:
                     self.paused = not self.paused
+                elif event.key == locals.K_d:
+                    self.mutation_rate += 0.1
+                    print("mutation_rate = {}".format(self.mutation_rate))
+                elif event.key == locals.K_s:
+                    self.mutation_rate -= 0.1
+                    print("mutation_rate = {}".format(self.mutation_rate))
+                elif event.key == locals.K_1:
+                    self.delay = 0.01
+                elif event.key == locals.K_2:
+                    self.delay = 0.1
+                elif event.key == locals.K_3:
+                    self.delay = 0
             elif event.type == locals.QUIT:
                 self.running = False
 
-    def update(self):
+    def show(self):
+        time.sleep(self.delay)
         pygame.display.flip()
 
 
@@ -58,8 +74,8 @@ class World:
         self.current_generation = self.get_first_generation()
         self.fitness_list = []
 
-        self.crossover_rate = 0.7
-        self.mutation_rate = 0.3
+        # self.crossover_rate = 0.7
+        # self.mutation_rate = 0.3
 
     def get_first_generation(self):
         self.generation_number += 1
@@ -69,13 +85,13 @@ class World:
         parameters_list = [game.snake.brain.parameters for game in self.current_generation]
 
         mating_pool = [ga.tournament_selection(parameters_list, self.fitness_list)
-                               for _ in range(len(parameters_list))]
+                       for _ in range(len(parameters_list))]
 
         parent_chromosomes = [ga.flatten_parameters(brain) for brain in mating_pool]
         crossed_chromosomes = []
         for pair in range(0, len(parent_chromosomes), 2):
-            for child in ga.crossover(parent_chromosomes[pair], parent_chromosomes[pair + 1], self.crossover_rate):
-                child = ga.mutation(child, self.mutation_rate)
+            for child in ga.crossover(parent_chromosomes[pair], parent_chromosomes[pair + 1], self.app.crossover_rate):
+                child = ga.mutation(child, self.app.mutation_rate)
                 crossed_chromosomes.append(child)
 
         # reshape parameters in the neural network architecture
@@ -88,21 +104,34 @@ class World:
         self.current_generation = [Game(self.app.surface, parameters=parameters, draw_enabled=True)
                                    for parameters in new_parameters]
 
-    def run_generation(self):
+    def run_generation_parallel(self):
         there_are_games_running = True
         while there_are_games_running and self.app.running:
             self.app.handle_events()
-
             if not self.app.paused:
                 self.app.draw_background()
                 there_are_games_running = False
-                for game in self.current_generation:
+                for ind, game in enumerate(self.current_generation):
                     if not game.game_over:
                         there_are_games_running = True
                         game.play()
+                        if ind < 50:        # only draw first 50 snakes
+                            game.draw()
+                self.app.show()
+
+        # update stats
+        self.fitness_list = [game.snake.fitness for game in self.current_generation]
+
+    def run_generation_sequential(self):
+        for ind, game in enumerate(self.current_generation):
+            while not game.game_over and self.app.running:
+                self.app.handle_events()
+                if not self.app.paused:
+                    game.play()
+                    if ind < 5:         # only draw first 5 snakes
+                        self.app.draw_background()
                         game.draw()
-                self.app.update()
-                time.sleep(0.01)
+                        self.app.show()
 
         # update stats
         self.fitness_list = [game.snake.fitness for game in self.current_generation]
@@ -115,10 +144,13 @@ class World:
 
 if __name__ == "__main__":
 
+    np.random.seed(0)
+
     world = World(population=500)
 
-    for _ in range(50):
-        world.run_generation()
+    for _ in range(500):
+        world.run_generation_parallel()
+        # world.run_generation_sequential()
         world.print_generation_statistics()
         world.create_next_generation()
 
