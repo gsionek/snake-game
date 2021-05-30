@@ -1,20 +1,26 @@
 from snake import Snake
 from apple import Apple
 from board_config import *
+from numpy import random
 import math
 
 
 class Game:
     """"Game class contains the Snake and Apple and defines the game rules. It also calculates the inputs for the
     neural network and updates the fitness of the snake along the game."""
-    def __init__(self, parent_screen, parameters=None, draw_enabled=False, print_enabled=False):
+    def __init__(self, parent_screen, parameters=None):
         self.surface = parent_screen
-        self.draw_enabled = draw_enabled
-        self.print_enabled = print_enabled
+        self.seed = random.randint(999999)
 
         self.snake = Snake(self.surface, parameters, initial_pos=(BOARD_SIZE[0] // 2, BOARD_SIZE[1] // 2))
-        self.apple = Apple(self.surface)
+        self.apple = Apple(self.surface, self.seed)
 
+        self.last_distance = 0
+        self.game_over = False
+
+    def reset(self):
+        self.snake.reset((BOARD_SIZE[0] // 2, BOARD_SIZE[1] // 2))
+        self.apple = Apple(self.surface, self.seed)
         self.last_distance = 0
         self.game_over = False
 
@@ -34,7 +40,7 @@ class Game:
         pass
 
     def get_inputs(self):
-        return self.get_apple_vision() + self.get_wall_vision()
+        return self.get_apple_vision() + (0, 0, 0, 0)     # + self.get_wall_vision()
 
     def update_fitness(self):
         distance = get_distance(self.apple.x, self.apple.y, self.snake.x[0], self.snake.y[0])
@@ -97,13 +103,6 @@ class Game:
     def draw(self):
         self.snake.draw()
         self.apple.draw()
-
-    def run(self):
-        self.play()
-        if self.draw_enabled:
-            self.draw()
-        if self.print_enabled:
-            print(str(self.apple) + '\t |' + str(self.snake))
 
 
 def is_collision(x0, y0, x1, y1):

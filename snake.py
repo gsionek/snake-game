@@ -30,6 +30,16 @@ class Snake:
         return "Snake pos=({},{})\t e={}\t f={}\t d={}\t   out={}\t ".format(
             self.x[0], self.y[0], self.energy, self.fitness, self.current_direction, self.brain.get_output())
 
+    def reset(self, initial_pos):
+        self.length = 3
+        self.x = [initial_pos[0]] * self.length
+        self.y = [initial_pos[1]] * self.length
+        self.current_direction_index = 1
+        self.current_direction = self.directions[self.current_direction_index]
+        self.energy = 60
+        self.fitness = 0
+        self.steps = 0
+
     def draw(self):
         # draw tail:
         for i in range(1, self.length):

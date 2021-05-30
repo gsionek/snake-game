@@ -15,9 +15,10 @@ class App:
         self.surface = pygame.display.set_mode(WINDOW_SIZE)
         self.running = True
         self.paused = False
-        self.delay = 0
-        self.mutation_rate = 0.3
+        self.delay = 0.01
+        self.mutation_rate = 0.1
         self.crossover_rate = 0.7
+        self.draw_enabled = True
 
     def draw_background(self):
         self.surface.fill(BACKGROUND_COLOR)
@@ -45,9 +46,11 @@ class App:
                 elif event.key == locals.K_RETURN:
                     self.paused = not self.paused
                 elif event.key == locals.K_d:
+                    self.draw_enabled = not self.draw_enabled
+                elif event.key == locals.K_w:
                     self.mutation_rate += 0.1
                     print("mutation_rate = {}".format(self.mutation_rate))
-                elif event.key == locals.K_s:
+                elif event.key == locals.K_a:
                     self.mutation_rate -= 0.1
                     print("mutation_rate = {}".format(self.mutation_rate))
                 elif event.key == locals.K_1:
@@ -79,7 +82,7 @@ class World:
 
     def get_first_generation(self):
         self.generation_number += 1
-        return [Game(self.app.surface, parameters=None, draw_enabled=True) for _ in range(self.population)]
+        return [Game(self.app.surface, parameters=None) for _ in range(self.population)]
 
     def create_next_generation(self):
         parameters_list = [game.snake.brain.parameters for game in self.current_generation]
@@ -101,8 +104,7 @@ class World:
             new_parameters.append(ga.reshape_parameters(chromosome, nn_architecture))
 
         self.generation_number += 1
-        self.current_generation = [Game(self.app.surface, parameters=parameters, draw_enabled=True)
-                                   for parameters in new_parameters]
+        self.current_generation = [Game(self.app.surface, parameters=parameters) for parameters in new_parameters]
 
     def run_generation_parallel(self):
         there_are_games_running = True
@@ -136,6 +138,26 @@ class World:
         # update stats
         self.fitness_list = [game.snake.fitness for game in self.current_generation]
 
+    def run_generation(self):
+        for game in self.current_generation:
+            while not game.game_over:
+                game.play()
+
+        # update stats
+        self.fitness_list = [game.snake.fitness for game in self.current_generation]
+
+    def draw_best_individual(self):
+        max_fitness_index = np.array(self.fitness_list).argmax()
+        game = self.current_generation[max_fitness_index]
+        game.reset()
+        while not game.game_over and self.app.running:
+            self.app.handle_events()    # also handle events during replay
+            if not self.app.paused:
+                game.play()
+                self.app.draw_background()
+                game.draw()
+                self.app.show()
+
     def print_generation_statistics(self):
         fitness = np.array(self.fitness_list)
         print('Generation #{} | Fitness: Max={} \tMean={} \tMin={}'.format(
@@ -149,10 +171,16 @@ if __name__ == "__main__":
     world = World(population=500)
 
     for _ in range(500):
-        world.run_generation_parallel()
-        # world.run_generation_sequential()
+        world.app.handle_events()
+        world.run_generation()
         world.print_generation_statistics()
+
+        if world.app.draw_enabled:
+            world.draw_best_individual()
+
         world.create_next_generation()
+
+        # eu te amo meu lindo
 
         if not world.app.running:
             break
